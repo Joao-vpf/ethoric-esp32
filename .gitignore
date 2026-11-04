@@ -10,7 +10,6 @@ dependencies.lock
 
 # Model weights and downloaded checkpoints (large; see docs/MODEL_FORMAT.md to regenerate)
 *.bin
-*.inc
 ethoric_original/
 
 # Python / host build artifacts
