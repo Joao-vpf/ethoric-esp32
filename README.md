@@ -23,9 +23,8 @@ continuation at about **7.5 tokens/s**, and serves it to your phone through a sm
 Ask for text over **WiFi** (browser, `curl`, or `tools/chat.py`) or over **USB serial**. Like a llama.cpp server, you send
 a prompt and get the whole completion back when it is done.
 
-> **Status.** The inference engine and its speed were measured on real hardware (the numbers above). The WiFi server, chat
-> page, captive portal and on-device tokenizer are newer: they are covered by host tests and a mock backend but have had
-> limited testing on a board. Issues and reports are welcome.
+> **Status.** Tested on an ESP32-S3 N16R8 with ESP-IDF 6.1: inference speed, WiFi server, chat page and on-device
+> tokenizer. Reports from other boards, phones and browsers are welcome.
 
 ## How it works
 
@@ -177,4 +176,4 @@ make -C host test                 # sampler unit test + full test suite
 
 ## License
 
-Code: [MIT](LICENSE). The Ethoric-10M weights are distributed under their own license; see the model card.
+Code: [MIT](LICENSE). The Ethoric-10M weights are also released under the MIT license; see the [model card](https://huggingface.co/techdotus/Ethoric-10M).
