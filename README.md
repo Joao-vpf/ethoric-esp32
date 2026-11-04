@@ -1,37 +1,62 @@
 # Ethoric-ESP32
 
-Run the ~10M-parameter language model **[Ethoric-10M](https://huggingface.co/techdotus/Ethoric-10M)** entirely on an
-**ESP32-S3** (N16R8: 16 MB flash, 8 MB octal PSRAM): no network, no host computer, text printed straight to the
-serial console.
+A ~10M-parameter language model, **[Ethoric-10M](https://huggingface.co/techdotus/Ethoric-10M)**, running entirely on an
+**ESP32-S3** (16 MB flash, 8 MB PSRAM). No cloud, no companion computer: the board tokenizes your text, generates the
+continuation at about **7.5 tokens/s**, and serves it to your phone through a small chat page over its own WiFi.
 
-| Metric (ESP32-S3 N16R8, 240 MHz, ESP-IDF 6.1) | Value |
+<p align="center">
+  <img src="media/chat-light.png" width="300" alt="Chat page, light theme">
+  &nbsp;&nbsp;
+  <img src="media/chat-dark.png" width="300" alt="Chat page, dark theme">
+</p>
+<p align="center"><sub>The chat page served by the board (UI preview rendered with a mock backend; the text shown is sample output).</sub></p>
+
+## At a glance
+
+| ESP32-S3 N16R8, 240 MHz, ESP-IDF 6.1 | Measured |
 |---|---|
-| Decode speed | **134 ms/token (7.5 tokens/s)** with both cores |
+| Decode speed | **134 ms/token (7.5 tokens/s)**, both cores |
 | Model file | 7.0 MiB (int4 MLP) or ~9.8 MiB (int8) |
-| Runtime RAM (context 160) | ~1 MiB |
-| Quality cost vs. fp32 | int8 weights + int8 activations: +0.11 % perplexity; int4 MLP: about +8 % |
-| Output | Readable English text, embedded vocabulary (no host-side detokenizer) |
+| Runtime RAM (context 160) | about 1 MiB |
+| Quality cost vs. fp32 | W8A8: +0.11 % perplexity; int4 MLP: about +8 % |
 
-## Highlights
+Ask for text over **WiFi** (browser, `curl`, or `tools/chat.py`) or over **USB serial**. Like a llama.cpp server, you send
+a prompt and get the whole completion back when it is done.
 
-- **Header-only C++17 inference engine** (`components/ethoric/include/ethoric.hpp`) implementing the full architecture:
-  GQA, per-head QK-norm, RoPE, headwise gating, Peri-LN, Canon convolutions with document masking, sliding-window layer.
-- **W8A8 / W4A8 arithmetic** with Xtensa **PIE SIMD** kernels, checked bit-for-bit against the portable C
-  reference at every boot.
-- **Dual-core execution**: head-parallel attention and split matrix-vector products; the worker core sleeps between tokens.
-- **Weights memory-mapped from flash**, optionally relocated into PSRAM, with CRC32 verification of the model file.
-- **Single-file model format (ETHW v1–v3)** with optional embedded vocabulary table.
-- **Text in, text out**: the board runs its own BPE tokenizer and serves `POST /completion` over WiFi (llama.cpp style) or USB serial; `tools/chat.py` is a ready-made client.
-- **Complete tooling and tests**: NumPy reference decoder, Hugging Face parity check, exporter, host runner,
-  and a test suite comparing the C++ engine with the reference.
+> **Status.** The inference engine and its speed were measured on real hardware (the numbers above). The WiFi server, chat
+> page, captive portal and on-device tokenizer are newer: they are covered by host tests and a mock backend but have had
+> limited testing on a board. Issues and reports are welcome.
+
+## How it works
+
+```
+  phone / browser                         ESP32-S3
+ ┌──────────────┐   HTTP, WiFi AP   ┌─────────────────────────────────────────────┐
+ │  chat page   │ ────────────────► │  net_server   JSON, captive portal, DNS     │
+ │  (HTML, 11KB)│ ◄──────────────── │  BPE encoder  text -> ids  (tables in .bin) │
+ └──────────────┘   completion      │  Runner       12 layers, KV cache, sampler  │
+                                    │  kernels      int8/int4, PIE SIMD, 2 cores  │
+                                    └──────────────┬──────────────────────────────┘
+                                                   │ memory-mapped / copied once
+                                        flash "model" partition -> PSRAM
+```
+
+- **Compact model file (ETHW).** Weights are int8, with the MLP optionally int4, in one file with an embedded vocabulary and
+  tokenizer tables, CRC-checked at boot. See [docs/MODEL_FORMAT.md](docs/MODEL_FORMAT.md).
+- **Fast arithmetic.** Int8 activations (W8A8) and Xtensa PIE SIMD kernels that are verified bit-for-bit against the portable C
+  reference at every boot, plus head-parallel attention across both cores. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Memory tiering.** Weights live in flash, are copied into PSRAM at boot, and small tables stay in internal RAM.
+- **Self-contained front end.** WiFi station or access point with a captive portal, `POST /completion`, a chat page embedded in
+  the firmware, and a USB serial protocol. Measurements and quality trade-offs: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ## Repository layout
 
 ```
 .
-├── components/ethoric/include/   # Inference engine (ethoric.hpp) and sampler (sampler.hpp)
-├── main/                         # ESP-IDF application (main.cpp, net_server.cpp, dual_core.hpp)
-├── host/                         # Desktop runner, sampler unit test, Makefile
+├── components/ethoric/include/   # Inference engine, sampler, BPE tokenizer, JSON and DNS helpers
+├── main/                         # ESP-IDF application: main.cpp, net_server.cpp, web/index.html (chat page)
+├── host/                         # Desktop runner, unit tests (sampler, JSON, DNS), Makefile
+├── media/                        # Screenshots used in this README
 ├── tools/                        # Export, chat client, reference decoder and tokenizer, HF parity check
 ├── tests/                        # Reference decoder tests and C++-vs-reference suite
 ├── docs/                         # Architecture, model format, performance notes
@@ -62,7 +87,7 @@ make build flash                  # firmware
 make flash-model MODEL=ethoric_int4.bin   # weights into the "model" partition
 ```
 
-Do not open `make monitor` afterwards if you want to chat: only one program can own the serial port (see step 3).
+`make monitor` shows the boot log, including the board's WiFi address (see step 3). Close it before using the USB serial chat: only one program can own the serial port.
 
 ### 3. Talk to the board
 
@@ -70,11 +95,17 @@ The board tokenizes your text itself (the BPE tables are embedded in the model f
 when it is done, like a llama.cpp server. Pick one transport.
 
 **WiFi (HTTP).** Put your network in `.env` (copy `.env.example` first): `WIFI_SSID=...` and `WIFI_PASSWORD=...`, then
-`make build flash`. The board prints its IP address at boot (`make monitor`). With no SSID set, it creates its own access
+`make build flash`, then open `make monitor`. The board prints its address as soon as it joins your network, in a line like
+`connected: http://192.168.1.57:8080/completion`. **That IP can change**: your router assigns it by DHCP, so it may be different after
+a reboot, a router restart or a long time off. Do not hard-code it; read it from the monitor each time (press RESET with the monitor
+open to see it again), or reserve a fixed IP for the board in your router's DHCP settings if you want it to stay the same.
+With no SSID set, it creates its own access
 point (`AP_SSID` / `AP_PASSWORD`, default `Ethoric-ESP32` / `ethoric123`) with a **captive portal**: once a phone or PC joins, the
 chat page opens by itself, and any plain-HTTP address typed in a browser is redirected to it (the board answers every DNS
 name with its own address). HTTPS addresses cannot be redirected and show a certificate error. In access point mode the
 server always listens on port 80 (`http://192.168.4.1/`); in station mode it uses `HTTP_PORT` (default 8080).
+
+The examples below use the access point address `192.168.4.1`; on your home network use the IP shown in the monitor (and port 8080).
 
 ```bash
 curl http://192.168.4.1/completion -d '{"prompt": "The lighthouse stood at", "n_predict": 64,
