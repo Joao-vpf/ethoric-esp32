@@ -1,0 +1,23 @@
+# Build output
+build/
+managed_components/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+
+# Local configuration
+.env
+
+# Model weights and downloaded checkpoints (large; see docs/MODEL_FORMAT.md to regenerate)
+*.bin
+*.inc
+ethoric_original/
+
+# Python / host build artifacts
+__pycache__/
+*.pyc
+host/build/
+
+# Editors
+.vscode/
+.idea/

@@ -1,0 +1,29 @@
+# Ethoric-10M on ESP32-S3 N16R8 (16 MB flash, 8 MB octal PSRAM). Target: ESP-IDF 5.5 or newer.
+# NOTE: an existing `sdkconfig` takes precedence over this file. Delete it (rm sdkconfig) and run
+# `idf.py set-target esp32s3` to regenerate it from these defaults.
+CONFIG_IDF_TARGET="esp32s3"
+
+# --- 16 MB flash with a custom partition table (the model partition needs the space)
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# --- Octal PSRAM at 80 MHz. Allocations above 16 KB (KV cache, weights) go to PSRAM; small ones stay internal.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+
+# --- Performance: 240 MHz CPU, speed-optimized build, larger data cache for sequential weight reads.
+# If the build complains about these names, check `idf.py menuconfig`
+# (Component config -> ESP System Settings -> Cache config).
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP32S3_DATA_CACHE_64KB=y
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
+
+# --- Main task stack (the default is too small for float printf plus logging)
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192

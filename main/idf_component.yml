@@ -1,0 +1,4 @@
+## Ethoric needs nothing beyond ESP-IDF itself (no TFLite, no cJSON).
+dependencies:
+  idf:
+    version: '>=5.0.0'

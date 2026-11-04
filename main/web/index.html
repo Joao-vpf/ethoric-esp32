@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Ethoric-10M</title>
+<style>
+:root{--bg:#f6f5f2;--panel:#fff;--ink:#1d1d1f;--mute:#76757a;--line:#e4e2dc;--accent:#3d5afe;--accent-ink:#fff;
+--user:#3d5afe;--user-ink:#fff;--bot:#fff;--shadow:0 1px 2px rgba(0,0,0,.06),0 6px 20px rgba(0,0,0,.05)}
+@media(prefers-color-scheme:dark){:root{--bg:#101114;--panel:#181a1f;--ink:#ececf0;--mute:#8b8d96;--line:#272a31;
+--accent:#7c8cff;--accent-ink:#0c0d12;--user:#4a5af0;--user-ink:#fff;--bot:#1d2026;--shadow:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+html,body{height:100%;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;gap:12px;padding:12px max(16px,env(safe-area-inset-left));border-bottom:1px solid var(--line);
+background:var(--bg);background:color-mix(in srgb,var(--bg) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);position:sticky;top:0;z-index:5}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3d5afe,#9b5cff);display:grid;place-items:center;
+color:#fff;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.title{flex:1;min-width:0}
+.title b{display:block;font-size:15px;letter-spacing:-.01em}
+.title span{display:block;font-size:12px;color:var(--mute)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--mute)}
+.icon:hover{background:var(--line);color:var(--ink)}
+.icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#settings{display:none;border-bottom:1px solid var(--line);background:var(--panel);padding:12px 16px}
+#settings.open{display:block}
+.grid{max-width:720px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.grid label{font-size:12px;color:var(--mute);display:block}
+.grid label output{float:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.grid input{width:100%;accent-color:var(--accent);margin:6px 0 0}
+main{flex:1;overflow-y:auto;scroll-behavior:smooth}
+#log{max-width:720px;margin:auto;padding:20px 16px 8px;display:flex;flex-direction:column;gap:14px}
+.empty{text-align:center;color:var(--mute);margin:12vh auto 0;max-width:30em}
+.empty h1{font-size:22px;color:var(--ink);letter-spacing:-.02em;margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink)}
+.chip:hover{border-color:var(--accent)}
+.msg{display:flex;flex-direction:column;max-width:88%;animation:in .25s ease both}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.msg.bot{align-self:flex-start}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.bubble{padding:10px 14px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:var(--shadow)}
+.user .bubble{background:var(--user);color:var(--user-ink);border-bottom-right-radius:6px}
+.bot .bubble{background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:6px}
+.bot .bubble .seed{color:var(--mute)}
+.meta{display:flex;gap:6px;align-items:center;margin:5px 4px 0;font-size:12px;color:var(--mute);flex-wrap:wrap}
+.meta button{color:var(--mute);padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+.meta button:hover{color:var(--ink);border-color:var(--mute)}
+.err .bubble{border-color:#d9534f;color:#d9534f}
+.wait{display:flex;flex-direction:column;gap:8px;min-width:200px}
+.dots{display:flex;gap:5px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--mute);animation:b 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.bar{height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s linear}
+.wait small{color:var(--mute);font-size:12px}
+footer{padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}
+.box{max-width:720px;margin:auto;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);
+border-radius:22px;padding:6px 6px 6px 16px;box-shadow:var(--shadow)}
+.box:focus-within{border-color:var(--accent)}
+textarea{flex:1;border:0;outline:0;resize:none;background:none;color:inherit;font:inherit;max-height:160px;padding:8px 0;line-height:1.45}
+#send{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+#send:disabled{opacity:.35;cursor:default}
+#send svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hint{max-width:720px;margin:6px auto 0;text-align:center;font-size:11.5px;color:var(--mute)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">E</div>
+  <div class="title"><b>Ethoric-10M</b><span>running on an ESP32-S3, no cloud</span></div>
+  <button class="icon" id="clear" title="New chat" aria-label="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="icon" id="gear" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+</header>
+<section id="settings"><div class="grid">
+  <label>Max new tokens <output id="o_n"></output><input id="n" type="range" min="8" max="150" step="1"></label>
+  <label>Temperature <output id="o_t"></output><input id="t" type="range" min="0" max="1.5" step="0.05"></label>
+  <label>Top-k <output id="o_k"></output><input id="k" type="range" min="0" max="100" step="1"></label>
+  <label>Repetition penalty <output id="o_r"></output><input id="r" type="range" min="1" max="2" step="0.05"></label>
+</div></section>
+<main id="main"><div id="log"></div></main>
+<footer>
+  <div class="box">
+    <textarea id="p" rows="1" placeholder="Start a sentence..." autofocus></textarea>
+    <button id="send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  </div>
+  <div class="hint">Base model: it continues your text rather than answering questions. English only.</div>
+</footer>
+<script>
+const $=id=>document.getElementById(id),log=$("log"),box=$("p");
+const DEF={n:64,t:0.8,k:20,r:1.2};
+let cfg={...DEF},busy=false,msPerTok=134;
+try{Object.assign(cfg,JSON.parse(localStorage.getItem("ethoric.cfg")||"{}"))}catch(e){}
+function syncCfg(){for(const k in DEF){$(k).value=cfg[k];$("o_"+k).textContent=cfg[k]}}
+for(const k in DEF)$(k).oninput=()=>{cfg[k]=+$(k).value;$("o_"+k).textContent=cfg[k];
+  try{localStorage.setItem("ethoric.cfg",JSON.stringify(cfg))}catch(e){}};
+syncCfg();
+$("gear").onclick=()=>$("settings").classList.toggle("open");
+
+const EX=["The lighthouse stood at","Water is made of","Once upon a time, in a small village,","The climate of a place depends on"];
+function empty(){log.innerHTML='<div class="empty"><h1>Ethoric-10M</h1>A 10-million-parameter language model running entirely on a microcontroller. Type the start of a text and it will continue it.<div class="chips"></div></div>';
+  const c=log.querySelector(".chips");for(const e of EX){const b=document.createElement("button");b.className="chip";b.textContent=e;b.onclick=()=>{box.value=e;send()};c.append(b)}}
+empty();
+
+function el(cls,html){const d=document.createElement("div");d.className=cls;if(html!==undefined)d.innerHTML=html;return d}
+function scroll(){$("main").scrollTop=$("main").scrollHeight}
+function grow(){box.style.height="auto";box.style.height=Math.min(box.scrollHeight,160)+"px"}
+box.oninput=grow;
+box.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();send()}};
+$("send").onclick=()=>send();
+$("clear").onclick=()=>{if(busy)return;empty();box.focus()};
+
+async function ask(prompt){
+  const r=await fetch("/completion",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt,n_predict:cfg.n,temperature:cfg.t,top_k:cfg.k,repeat_penalty:cfg.r})});
+  const d=await r.json().catch(()=>({error:{message:"unexpected reply (HTTP "+r.status+")"}}));
+  if(!r.ok)throw new Error(d.error?d.error.message:"HTTP "+r.status);
+  return d;
+}
+
+function waiting(prompt){
+  const w=el("msg bot"),b=el("bubble wait");
+  b.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="bar"><i></i></div><small></small>';
+  w.append(b);log.append(w);scroll();
+  const t0=Date.now(),est=(Math.max(prompt.length/4,4)*1.0+cfg.n)*msPerTok;
+  const bar=b.querySelector(".bar i"),sm=b.querySelector("small");
+  const id=setInterval(()=>{const s=(Date.now()-t0)/1000;bar.style.width=Math.min(95,s*1000/est*100)+"%";
+    sm.textContent="generating on the board... "+s.toFixed(0)+" s"},300);
+  return {w,stop:()=>{clearInterval(id);w.remove()}};
+}
+
+function botMessage(prompt,d){
+  const st={full:prompt+d.content};
+  const m=el("msg bot"),b=el("bubble");b.textContent=d.content.replace(/^\s+/,"");m.append(b);
+  const meta=el("meta"),info=document.createElement("span");
+  const stats=d=>{const tp=d.timings||{};if(tp.predicted_per_token_ms)msPerTok=tp.predicted_per_token_ms;
+    info.textContent=d.tokens_predicted+" tokens · "+(tp.predicted_per_second||0).toFixed(1)+" tok/s · "+(tp.predicted_per_token_ms||0).toFixed(0)+" ms/token"};
+  stats(d);
+  const cont=document.createElement("button");cont.textContent="Continue";
+  cont.onclick=async()=>{if(busy)return;const d2=await generate(st.full);
+    if(d2){b.textContent+=d2.content;st.full+=d2.content;stats(d2);scroll()}};
+  const cp=document.createElement("button");cp.textContent="Copy";
+  cp.onclick=async()=>{try{await navigator.clipboard.writeText(st.full);cp.textContent="Copied"}catch(e){cp.textContent="Not allowed here"}setTimeout(()=>cp.textContent="Copy",1500)};
+  meta.append(info,cont,cp);m.append(meta);return m;
+}
+
+function errorMessage(text){const m=el("msg bot err"),b=el("bubble");b.textContent=text;m.append(b);return m}
+
+// Sends `prompt` to the board and shows a progress bubble meanwhile. Returns the reply or null after showing an error.
+async function generate(prompt){
+  busy=true;$("send").disabled=true;
+  const w=waiting(prompt);
+  let d=null;
+  try{d=await ask(prompt)}catch(e){
+    let msg=String(e.message||e);
+    if(/busy/i.test(msg))msg="The board is still finishing the previous request. Wait a moment and try again.";
+    else if(/Failed to fetch|NetworkError|Load failed/i.test(msg))msg="Cannot reach the board. Check that you are on its WiFi.";
+    log.append(errorMessage(msg));
+  }
+  w.stop();busy=false;$("send").disabled=false;scroll();
+  return d;
+}
+
+async function send(){
+  const text=box.value.trim();
+  if(!text||busy)return;
+  if(log.querySelector(".empty"))log.innerHTML="";
+  const u=el("msg user"),b=el("bubble");b.textContent=text;u.append(b);log.append(u);
+  box.value="";grow();scroll();
+  const d=await generate(text);
+  if(d){log.append(botMessage(text,d));scroll()}
+  box.focus();
+}
+</script>
+</body>
+</html>
